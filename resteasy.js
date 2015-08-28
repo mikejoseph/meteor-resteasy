@@ -94,6 +94,16 @@ Resteasy.prototype.post = function(path, params) {
     return delayed(path, params);
 };
 
+/**
+ * Perform a API DELETE call
+ * @param  {string} path   Local API path
+ * @return {object}        Result data
+ */
+Resteasy.prototype.delete = function(path) {
+    var delayed = Async.wrap(this, 'performDelete');
+    return delayed(path);
+};
+
 // Private functions
 Resteasy.prototype.performGetToken = function(code, authUrl, params, callback) {
     if (!this.clientKey || !this.clientSecret) {
@@ -172,6 +182,34 @@ Resteasy.prototype.performPost = function(path, params, callback) {
 
     Meteor.http.post(this.clientUrl + '/' + path, {
         data: params,
+        headers: {
+            Authorization: 'Bearer ' + this.accessToken,
+            'Content-type': 'application/json',
+        }
+    }, function(err, res) {
+        if (err) {
+            console.log(err);
+            callback(null, err);
+            return;
+        }
+
+        callback(null, JSON.parse(res.content));
+    });
+};
+
+Resteasy.prototype.performDelete = function(path, callback) {
+    if (!this.accessToken) {
+        throw "TokenException";
+    }
+
+    if (path[0] === '/') {
+        path = path.substr(1);
+    }
+    if (path.indexOf('.') === -1 && path[path.length-1] !== '/') {
+        path = path + '/';
+    }
+
+    Meteor.http.del(this.clientUrl + '/' + path, {
         headers: {
             Authorization: 'Bearer ' + this.accessToken,
             'Content-type': 'application/json',
